@@ -39,7 +39,7 @@ app.use(bodyParser.json());
 // ========================
 const client = new Client({
     authStrategy: new LocalAuth(),
-    puppeteer: { headless: true }
+    puppeteer: { headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] }
 });
 
 let whatsappReady = false;
@@ -62,12 +62,17 @@ client.on("auth_failure", msg => {
     console.error("❌ Error de autenticación:", msg);
 });
 
+client.on("disconnected", () => {
+    whatsappReady = false;
+    console.warn("⚠️ Cliente de WhatsApp desconectado");
+});
+
 client.initialize();
 
 // ========================
 // 🔹 Preparar imagen para los mensajes
 // ========================
-const rutaImagen = path.join(__dirname, "./mindi_wsp.png"); 
+const rutaImagen = path.join(__dirname, "./mindi_wsp.png");
 let media = null;
 
 try {
@@ -86,9 +91,7 @@ app.get("/whatsapp-status", (req, res) => {
     res.json({ connected: whatsappReady });
 });
 
-// ========================
 // 🔹 Endpoint: Obtener QR
-// ========================
 app.get("/whatsapp-qr", (req, res) => {
     if (qrActual) {
         res.json({ qr: qrActual });
@@ -97,9 +100,7 @@ app.get("/whatsapp-qr", (req, res) => {
     }
 });
 
-// ========================
 // 🔹 Endpoint para enviar mensajes
-// ========================
 app.post("/send-messages", async (req, res) => {
     const estudiantes = req.body;
 
