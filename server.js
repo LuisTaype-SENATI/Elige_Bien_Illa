@@ -21,7 +21,10 @@ const app = express();
 // 🔹 Configuración CORS
 // ========================
 const corsOptions = {
-    origin: ["https://eligebien.psicoilla.com"], // frontend en Hostgator
+    origin: [
+        "https://eligebien.psicoilla.com", // tu frontend en Hostgator
+        "http://localhost:3000",           // útil en pruebas locales
+    ],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
     credentials: true
@@ -85,13 +88,15 @@ try {
 }
 
 // ========================
-// 🔹 Endpoint: Estado de WhatsApp
+// 🔹 Endpoints
 // ========================
+
+// Estado de WhatsApp
 app.get("/whatsapp-status", (req, res) => {
     res.json({ connected: whatsappReady });
 });
 
-// 🔹 Endpoint: Obtener QR
+// Obtener QR
 app.get("/whatsapp-qr", (req, res) => {
     if (qrActual) {
         res.json({ qr: qrActual });
@@ -100,7 +105,7 @@ app.get("/whatsapp-qr", (req, res) => {
     }
 });
 
-// 🔹 Endpoint para enviar mensajes
+// Enviar mensajes
 app.post("/send-messages", async (req, res) => {
     const estudiantes = req.body;
 
@@ -163,5 +168,5 @@ Gracias por su confianza 🙏 y esperamos acompañar el desarrollo académico de
 // ========================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
-    console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor backend corriendo en puerto ${PORT}`);
 });
