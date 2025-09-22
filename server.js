@@ -8,6 +8,7 @@ import cors from "cors";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import QRCode from "qrcode";
 
 // ========================
 // 🔹 Definir __dirname en ES Modules
@@ -97,9 +98,15 @@ app.get("/whatsapp-status", (req, res) => {
 });
 
 // Obtener QR
-app.get("/whatsapp-qr", (req, res) => {
+app.get("/whatsapp-qr", async (req, res) => {
     if (qrActual) {
-        res.json({ qr: qrActual });
+        try {
+            const qrImage = await QRCode.toDataURL(qrActual); // 🔹 Convertir a imagen base64
+            res.json({ qr: qrImage });
+        } catch (err) {
+            console.error("❌ Error generando QR:", err);
+            res.status(500).json({ qr: null, message: "Error generando QR" });
+        }
     } else {
         res.json({ qr: null, message: "No se necesita QR, WhatsApp ya está conectado" });
     }
@@ -170,3 +177,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Servidor backend corriendo en puerto ${PORT}`);
 });
+
