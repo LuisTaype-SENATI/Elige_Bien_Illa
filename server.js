@@ -20,19 +20,13 @@ const app = express();
 // ========================
 // 🔹 Configuración CORS
 // ========================
-// ⚠️ IMPORTANTE: SOLO PERMITE TU DOMINIO REAL
-// Para pruebas rápidas puedes poner origin: "*", pero en producción usa tu dominio.
 const corsOptions = {
-    origin: ["https://eligebien.psicoilla.com"], // frontend Hostgator
+    origin: ["https://eligebien.psicoilla.com"], // frontend en Hostgator
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
     credentials: true
 };
-
-// Middleware CORS global
 app.use(cors(corsOptions));
-
-// Responder a preflight requests (OPTIONS)
 app.options("*", cors(corsOptions));
 
 // ========================
@@ -48,16 +42,23 @@ const client = new Client({
     puppeteer: { headless: true }
 });
 
+let whatsappReady = false;
+let qrActual = null;
+
 client.on("qr", qr => {
+    qrActual = qr;
     console.log("📲 Escanea este QR con tu WhatsApp:");
     qrcode.generate(qr, { small: true });
 });
 
 client.on("ready", () => {
+    whatsappReady = true;
+    qrActual = null; // limpiar el QR porque ya está conectado
     console.log("✅ WhatsApp Web conectado correctamente!");
 });
 
 client.on("auth_failure", msg => {
+    whatsappReady = false;
     console.error("❌ Error de autenticación:", msg);
 });
 
@@ -79,6 +80,24 @@ try {
 }
 
 // ========================
+// 🔹 Endpoint: Estado de WhatsApp
+// ========================
+app.get("/whatsapp-status", (req, res) => {
+    res.json({ connected: whatsappReady });
+});
+
+// ========================
+// 🔹 Endpoint: Obtener QR
+// ========================
+app.get("/whatsapp-qr", (req, res) => {
+    if (qrActual) {
+        res.json({ qr: qrActual });
+    } else {
+        res.json({ qr: null, message: "No se necesita QR, WhatsApp ya está conectado" });
+    }
+});
+
+// ========================
 // 🔹 Endpoint para enviar mensajes
 // ========================
 app.post("/send-messages", async (req, res) => {
@@ -86,6 +105,10 @@ app.post("/send-messages", async (req, res) => {
 
     if (!Array.isArray(estudiantes) || estudiantes.length === 0) {
         return res.status(400).json({ success: false, message: "Lista de estudiantes vacía o inválida" });
+    }
+
+    if (!whatsappReady) {
+        return res.status(503).json({ success: false, message: "WhatsApp no está conectado. Escanea el QR primero." });
     }
 
     try {
