@@ -20,12 +20,20 @@ const app = express();
 // ========================
 // 🔹 Configuración CORS
 // ========================
-// En producción, reemplaza "*" por el dominio real de tu Hostgator (ej: https://tu-dominio.com)
-app.use(cors({
-    origin: "https://eligebien.psicoilla.com", // Reemplaza con tu dominio real
-    methods: ["GET","POST","OPTIONS"],
-    allowedHeaders: ["Content-Type"]
-}));
+// ⚠️ IMPORTANTE: SOLO PERMITE TU DOMINIO REAL
+// Para pruebas rápidas puedes poner origin: "*", pero en producción usa tu dominio.
+const corsOptions = {
+    origin: ["https://eligebien.psicoilla.com"], // frontend Hostgator
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type"],
+    credentials: true
+};
+
+// Middleware CORS global
+app.use(cors(corsOptions));
+
+// Responder a preflight requests (OPTIONS)
+app.options("*", cors(corsOptions));
 
 // ========================
 // 🔹 Middleware
@@ -41,7 +49,7 @@ const client = new Client({
 });
 
 client.on("qr", qr => {
-    console.log("Escanea este QR con tu WhatsApp 📱");
+    console.log("📲 Escanea este QR con tu WhatsApp:");
     qrcode.generate(qr, { small: true });
 });
 
@@ -58,7 +66,7 @@ client.initialize();
 // ========================
 // 🔹 Preparar imagen para los mensajes
 // ========================
-const rutaImagen = path.join(__dirname, "./mindi_wsp.png"); // 📌 ajusta la ruta
+const rutaImagen = path.join(__dirname, "./mindi_wsp.png"); 
 let media = null;
 
 try {
@@ -67,7 +75,7 @@ try {
     console.log("✅ Imagen cargada correctamente:", rutaImagen);
 } catch (error) {
     console.error("❌ Error al cargar la imagen:", error);
-    media = null; // Evita que el servidor se caiga
+    media = null;
 }
 
 // ========================
@@ -84,14 +92,14 @@ app.post("/send-messages", async (req, res) => {
         for (let est of estudiantes) {
             if (!est.telefono_apoderado) continue;
 
-            // Formato de número internacional (ej. Perú: 51)
+            // 📞 Formato internacional (ej. Perú: 51)
             let numero = est.telefono_apoderado.replace(/\D/g, "");
             if (!numero.startsWith("51")) {
                 numero = "51" + numero;
             }
             const chatId = numero + "@c.us";
 
-            // Mensaje personalizado
+            // 📩 Mensaje personalizado
             const mensaje = `
 👋 Hola estimado ${est.apoderado},
 
@@ -101,7 +109,7 @@ Nos complace informarle que su hijo(a) ${est.nombre} ${est.apellido} ha sido reg
 👤 Usuario: ${est.nombre_usuario}
 🔒 Contraseña: ${est.contrasena}
 
-🌐 Ingrese a: mi_link.com
+🌐 Ingrese a: https://eligebien.psicoilla.com/
 
 📅 Le recomendamos que su hijo(a) inicie sesión lo antes posible y cambie su contraseña por motivos de seguridad 🔐.
 
@@ -109,7 +117,7 @@ Si tiene alguna consulta, no dude en contactarnos.
 Gracias por su confianza 🙏 y esperamos acompañar el desarrollo académico de su hijo(a) 📚.
             `;
 
-            // Enviar mensaje con imagen si está cargada
+            // 📎 Enviar mensaje con imagen (si está cargada)
             if (media) {
                 await client.sendMessage(chatId, media, { caption: mensaje });
             } else {
@@ -129,7 +137,7 @@ Gracias por su confianza 🙏 y esperamos acompañar el desarrollo académico de
 // ========================
 // 🔹 Servidor Express
 // ========================
-const PORT = process.env.PORT || 3000; // ✅ Usa puerto dinámico en producción
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Servidor backend corriendo en http://localhost:${PORT}`);
 });
