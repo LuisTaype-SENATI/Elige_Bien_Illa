@@ -22,8 +22,8 @@ const app = express();
 // ========================
 // En producción, reemplaza "*" por el dominio real de tu Hostgator (ej: https://tu-dominio.com)
 app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST", "OPTIONS"],
+    origin: "https://elige-bien-backend.onrender.com/send-messages", // Reemplaza con tu dominio real
+    methods: ["GET","POST","OPTIONS"],
     allowedHeaders: ["Content-Type"]
 }));
 
