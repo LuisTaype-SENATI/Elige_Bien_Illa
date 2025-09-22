@@ -23,8 +23,8 @@ const app = express();
 // ========================
 const corsOptions = {
     origin: [
-        "https://eligebien.psicoilla.com", // tu frontend en Hostgator
-        "http://localhost:3000",           // útil en pruebas locales
+        "https://eligebien.psicoilla.com", // frontend en Hostgator
+        "http://localhost:3000"            // pruebas locales
     ],
     methods: ["GET", "POST", "OPTIONS"],
     allowedHeaders: ["Content-Type"],
@@ -42,7 +42,9 @@ app.use(bodyParser.json());
 // 🔹 Inicializar WhatsApp
 // ========================
 const client = new Client({
-    authStrategy: new LocalAuth(),
+    authStrategy: new LocalAuth({
+        dataPath: path.join(__dirname, ".wwebjs_auth") // 📂 Guardar sesión en el servidor Render
+    }),
     puppeteer: { headless: true, args: ["--no-sandbox", "--disable-setuid-sandbox"] }
 });
 
@@ -51,13 +53,14 @@ let qrActual = null;
 
 client.on("qr", qr => {
     qrActual = qr;
+    whatsappReady = false;
     console.log("📲 Escanea este QR con tu WhatsApp:");
     qrcode.generate(qr, { small: true });
 });
 
 client.on("ready", () => {
     whatsappReady = true;
-    qrActual = null; // limpiar el QR porque ya está conectado
+    qrActual = null; // ✅ Limpia QR porque ya está conectado
     console.log("✅ WhatsApp Web conectado correctamente!");
 });
 
@@ -68,7 +71,8 @@ client.on("auth_failure", msg => {
 
 client.on("disconnected", () => {
     whatsappReady = false;
-    console.warn("⚠️ Cliente de WhatsApp desconectado");
+    console.warn("⚠️ Cliente de WhatsApp desconectado, reiniciando...");
+    client.initialize(); // 🔄 Reintento automático
 });
 
 client.initialize();
@@ -101,14 +105,14 @@ app.get("/whatsapp-status", (req, res) => {
 app.get("/whatsapp-qr", async (req, res) => {
     if (qrActual) {
         try {
-            const qrImage = await QRCode.toDataURL(qrActual); // 🔹 Convertir a imagen base64
-            res.json({ qr: qrImage });
+            const qrImage = await QRCode.toDataURL(qrActual); // ✅ QR en Base64
+            res.json({ qr: qrImage, connected: false });
         } catch (err) {
             console.error("❌ Error generando QR:", err);
             res.status(500).json({ qr: null, message: "Error generando QR" });
         }
     } else {
-        res.json({ qr: null, message: "No se necesita QR, WhatsApp ya está conectado" });
+        res.json({ qr: null, connected: whatsappReady, message: whatsappReady ? "WhatsApp conectado" : "Esperando QR" });
     }
 });
 
@@ -177,4 +181,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
     console.log(`🚀 Servidor backend corriendo en puerto ${PORT}`);
 });
-
